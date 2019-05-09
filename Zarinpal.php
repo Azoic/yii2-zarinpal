@@ -14,24 +14,34 @@ class Zarinpal extends Model
     private $_authority;
     private $_ref_id;
 
+    /**
+     * @param       $amount
+     * @param       $description
+     * @param null  $email
+     * @param null  $mobile
+     * @param array $callbackParams
+     *
+     * @return $this
+     * @throws \SoapFault
+     */
     public function request($amount, $description, $email = null, $mobile = null, $callbackParams = [])
     {
-        if(count($callbackParams) > 0){
+        if (count($callbackParams) > 0) {
             $i = 0;
-            foreach ($callbackParams as $name => $value){
-                if($i == 0) {
+            foreach ($callbackParams as $name => $value) {
+                if ($i === 0) {
                     $this->callback_url .= '?';
-                }else{
+                } else {
                     $this->callback_url .= '&';
                 }
-                $this->callback_url .= $name.'='.$value;
+                $this->callback_url .= $name . '=' . $value;
                 $i++;
             }
         }
-        
-        if($this->testing){
+
+        if ($this->testing) {
             $client = new SoapClient('https://sandbox.zarinpal.com/pg/services/WebGate/wsdl', ['encoding' => 'UTF-8']);
-        }else{
+        } else {
             $client = new SoapClient('https://www.zarinpal.com/pg/services/WebGate/wsdl', ['encoding' => 'UTF-8']);
         }
         $result = $client->PaymentRequest(
@@ -45,7 +55,7 @@ class Zarinpal extends Model
             ]
         );
 
-        $this->_status = $result->Status;
+        $this->_status    = $result->Status;
         $this->_authority = $result->Authority;
 
         return $this;
@@ -54,9 +64,9 @@ class Zarinpal extends Model
     public function verify($authority, $amount)
     {
         $this->_authority = $authority;
-        if($this->testing){
+        if ($this->testing) {
             $client = new SoapClient('https://sandbox.zarinpal.com/pg/services/WebGate/wsdl', ['encoding' => 'UTF-8']);
-        }else{
+        } else {
             $client = new SoapClient('https://www.zarinpal.com/pg/services/WebGate/wsdl', ['encoding' => 'UTF-8']);
         }
         $result = $client->PaymentVerification(
@@ -75,27 +85,27 @@ class Zarinpal extends Model
 
     public function getStatus()
     {
-        return $this->_status;
+        return (int)$this->_status;
     }
 
-    public function getRefId() {
-        return $this->_ref_id;
+    public function getRefID()
+    {
+        return (string)$this->_ref_id;
     }
 
     public function getRedirectUrl($zaringate = true)
     {
-        if($this->testing){
-            $url = 'https://sandbox.zarinpal.com/pg/StartPay/'. $this->_authority;
-        }else{
-            $url = 'https://www.zarinpal.com/pg/StartPay/'.$this->_authority;
-        }
-        $url .=  ($zaringate) ? '/ZarinGate' : '';
+        $url = $this->testing ?
+            'https://sandbox.zarinpal.com/pg/StartPay/' . $this->_authority
+            :
+            'https://www.zarinpal.com/pg/StartPay/' . $this->_authority;
+
+        $url .= $zaringate ? '/ZarinGate' : '';
 
         return $url;
     }
 
     public function getAuthority()
     {
-        return $this->_authority;
+        return (string)ltrim($this->_authority, '0');
     }
-}
